@@ -1,0 +1,34 @@
+FROM node:20-alpine AS build
+
+WORKDIR /usr/src/app
+
+ENV NODE_ENV=production
+
+# Only copy package files first
+COPY package*.json ./
+
+# Install ALL deps (including dev if needed for building)
+RUN npm ci
+
+# Copy project files
+COPY . .
+
+
+FROM node:20-alpine AS production
+
+WORKDIR /usr/src/app
+
+ENV NODE_ENV=production
+
+# Copy ONLY required node_modules from build stage
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# Copy ONLY your source code
+COPY --from=build /usr/src/app  /usr/src/app
+
+# Use non-root "node" user
+USER node
+
+EXPOSE 5000
+
+CMD ["node", "server.js"]

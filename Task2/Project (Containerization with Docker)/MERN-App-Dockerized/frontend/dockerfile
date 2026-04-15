@@ -1,0 +1,31 @@
+
+FROM node:19.6-alpine AS build
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN --mount=type=cache,target=/usr/src/app/.npm \
+  npm set cache /usr/src/app/.npm && \
+  npm ci
+
+
+COPY . .
+
+RUN npm run build
+
+# Serve the built app using a non-root Nginx image
+FROM nginxinc/nginx-unprivileged:1.29.3-alpine-perl
+
+# Set environment variable for production
+ENV NODE_ENV=production
+
+
+COPY --from=build /usr/src/app/build /usr/share/nginx/html
+
+
+EXPOSE 8080
+
+
+# Nginx unprivileged image already has CMD to start Nginx,
+# so no need to specify CMD explicitly
